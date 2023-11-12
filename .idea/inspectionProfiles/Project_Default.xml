@@ -1,0 +1,54 @@
+<component name="InspectionProjectProfileManager">
+  <profile version="1.0">
+    <option name="myName" value="Project Default" />
+    <inspection_tool class="HtmlUnknownAttribute" enabled="true" level="WARNING" enabled_by_default="true">
+      <option name="myValues">
+        <value>
+          <list size="2">
+            <item index="0" class="java.lang.String" itemvalue="href" />
+            <item index="1" class="java.lang.String" itemvalue="field-name" />
+          </list>
+        </value>
+      </option>
+      <option name="myCustomValuesEnabled" value="true" />
+    </inspection_tool>
+    <inspection_tool class="JupyterPackageInspection" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="PyPackageRequirementsInspection" enabled="true" level="WARNING" enabled_by_default="true">
+      <option name="ignoredPackages">
+        <value>
+          <list size="19">
+            <item index="0" class="java.lang.String" itemvalue="altgraph" />
+            <item index="1" class="java.lang.String" itemvalue="beautifulsoup4" />
+            <item index="2" class="java.lang.String" itemvalue="pyinstaller" />
+            <item index="3" class="java.lang.String" itemvalue="PyQt5-sip" />
+            <item index="4" class="java.lang.String" itemvalue="requests" />
+            <item index="5" class="java.lang.String" itemvalue="pefile" />
+            <item index="6" class="java.lang.String" itemvalue="pyinstaller-hooks-contrib" />
+            <item index="7" class="java.lang.String" itemvalue="shiboken2" />
+            <item index="8" class="java.lang.String" itemvalue="PyQt5-Qt5" />
+            <item index="9" class="java.lang.String" itemvalue="pyOpenSSL" />
+            <item index="10" class="java.lang.String" itemvalue="future" />
+            <item index="11" class="java.lang.String" itemvalue="PyQt5" />
+            <item index="12" class="java.lang.String" itemvalue="pywin32-ctypes" />
+            <item index="13" class="java.lang.String" itemvalue="charset-normalizer" />
+            <item index="14" class="java.lang.String" itemvalue="soupsieve" />
+            <item index="15" class="java.lang.String" itemvalue="urllib3" />
+            <item index="16" class="java.lang.String" itemvalue="PyQt5-stubs" />
+            <item index="17" class="java.lang.String" itemvalue="PySide2" />
+            <item index="18" class="java.lang.String" itemvalue="django-enumfields" />
+          </list>
+        </value>
+      </option>
+    </inspection_tool>
+    <inspection_tool class="PyUnresolvedReferencesInspection" enabled="true" level="WARNING" enabled_by_default="true">
+      <option name="ignoredIdentifiers">
+        <list>
+          <option value="PySide2.QtCore.timeout.connect" />
+          <option value="type.with_ui" />
+          <option value="tqdm.notebook.tqdm_notebook.pandas" />
+        </list>
+      </option>
+    </inspection_tool>
+    <inspection_tool class="TaskProblemsInspection" enabled="true" level="ERROR" enabled_by_default="true" />
+  </profile>
+</component>
