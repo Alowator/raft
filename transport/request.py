@@ -9,4 +9,9 @@ class GetVoteRequest:
 
 @dataclass
 class AppendEntriesRequest:
-    pass
+    node: str
+    term: int
+    prev_log_index: int
+    prev_log_term: int
+    entry: str | None
+    leader_commit: int

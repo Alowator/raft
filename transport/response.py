@@ -9,4 +9,8 @@ class GetVoteResponse:
 
 @dataclass
 class AppendEntriesResponse:
-    pass
+    node: str
+    term: int
+    success: bool
+
+    dict = asdict
