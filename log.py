@@ -1,6 +1,5 @@
 import logging
 
-
 class Entry:
     def __init__(self, index: int, term: int, value: str):
         self._index = index

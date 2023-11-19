@@ -9,7 +9,6 @@ from common.address import Address
 from transport.request import GetVoteRequest, AppendEntriesRequest
 from transport.response import GetVoteResponse, AppendEntriesResponse
 
-
 class Communicator:
     def __init__(self, current_node: Address, nodes: List[Address],request_vote_callback, append_entries_callback):
         self.current_node = current_node
