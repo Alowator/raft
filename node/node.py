@@ -13,10 +13,9 @@ from transport.request import GetVoteRequest, AppendEntriesRequest
 from transport.response import GetVoteResponse, AppendEntriesResponse
 
 class Node:
-    def __init__(self, node: Address, other_nodes: list[Address], conf: Conf = Conf()):
+    def __init__(self, node: Address, conf: Conf = Conf()):
         self.conf = conf
         self.node: Address = node
-        self.other_nodes = other_nodes
 
         self.state: State = State.FOLLOWER
         self.current_term = 0
@@ -34,7 +33,7 @@ class Node:
 
         self.election_deadline = self._get_time() + conf.get_election_timeout()
         self.append_entries_deadline = .0
-        self.communicator = Communicator(node, other_nodes, self._on_request_vote, self._on_append_entries)
+        self.communicator = Communicator(node, conf, self._on_request_vote, self._on_append_entries, self._on_set_value)
         self.request_vote_futures: List[Future[GetVoteResponse]] = []
         self.append_entries_futures: List[Future[AppendEntriesResponse]] = []
 
@@ -75,34 +74,35 @@ class Node:
 
             self.request_vote_futures = undone_futures
 
-            if self.votes_count > (len(self.other_nodes) + 1) / 2:
+            if self.votes_count > len(self.conf.get_nodes()) / 2:
                 logging.info(f"Received {self.votes_count} votes, became LEADER, term {self.current_term}")
                 self.state = State.LEADER
-                for node in map(str, self.other_nodes):
+                for node in map(str, self._get_other_nodes()):
                     self.next_index[node] = self.log.get_last_log_index() + 1
                     self.match_index[node] = 0
 
         if self.state == State.LEADER:
             if self._get_time() > self.append_entries_deadline:
                 self.append_entries_deadline = self._get_time() + self.conf.append_entries_period
-                for node in self.other_nodes:
-                    next_node_index = self.next_index[str(node)]
-                    if next_node_index <= self.log.get_last_log_index():
-                        entry = self.log.get_entry(next_node_index)
-                        # self.next_index[str(node)] = entry.get_index() + 1
-                    else:
-                        entry = None
+                for node in self._get_other_nodes():
+                    next_node_index = self.next_index.get(str(node))
+                    if next_node_index is not None:
+                        if next_node_index <= self.log.get_last_log_index():
+                            entry = self.log.get_entry(next_node_index)
+                            # self.next_index[str(node)] = entry.get_index() + 1
+                        else:
+                            entry = None
 
-                    value = None if entry is None else entry.get_value()
-                    append_entries_future = self.communicator.append_entries(node, AppendEntriesRequest(
-                        node=str(self.node),
-                        term=self.current_term,
-                        prev_log_index=self.log.get_entry(next_node_index - 1).get_index(),
-                        prev_log_term=self.log.get_entry(next_node_index - 1).get_term(),
-                        entry=value,
-                        leader_commit=self.commit_index,
-                    ))
-                    self.append_entries_futures.append(append_entries_future)
+                        value = None if entry is None else entry.get_value()
+                        append_entries_future = self.communicator.append_entries(node, AppendEntriesRequest(
+                            node=str(self.node),
+                            term=self.current_term,
+                            prev_log_index=self.log.get_entry(next_node_index - 1).get_index(),
+                            prev_log_term=self.log.get_entry(next_node_index - 1).get_term(),
+                            entry=value,
+                            leader_commit=self.commit_index,
+                        ))
+                        self.append_entries_futures.append(append_entries_future)
 
             undone_append_entries_futures = []
             for append_entries_future in self.append_entries_futures:
@@ -124,15 +124,16 @@ class Node:
                     undone_append_entries_futures.append(append_entries_future)
             self.append_entries_futures = undone_append_entries_futures
 
-            for node1 in map(str, self.other_nodes):
-                commit_index_candidate  = self.match_index[node1]
-                votes = 0
-                for node2 in map(str, self.other_nodes):
-                    if commit_index_candidate >= self.match_index[node2]:
-                        votes += 1
+            for node1 in map(str, self._get_other_nodes()):
+                commit_index_candidate = self.match_index.get(node1)
+                if commit_index_candidate is not None:
+                    votes = 0
+                    for node2 in map(str, self._get_other_nodes()):
+                        if commit_index_candidate >= self.match_index[node2]:
+                            votes += 1
 
-                if votes >= (len(self.other_nodes) + 1) // 2 and commit_index_candidate > self.commit_index:
-                    self.commit_index = commit_index_candidate
+                    if votes >= len(self.conf.get_nodes()) // 2 and commit_index_candidate > self.commit_index:
+                        self.commit_index = commit_index_candidate
 
     def _get_time(self):
         return time.time()
@@ -187,9 +188,11 @@ class Node:
             else:
                 return AppendEntriesResponse(node=str(self.node), term=self.current_term, success=False)
 
-    def cmd(self, cmd: str):
+    def _on_set_value(self, value: str):
         with self.lock:
-            if cmd == "p":
-                self.log.print()
-            else:
-                self.log.add(cmd, self.current_term)
+            self.log.add(value, self.current_term)
+
+    def _get_other_nodes(self) -> List[Address]:
+        nodes = self.conf.get_nodes().copy()
+        nodes.remove(self.node)
+        return nodes
