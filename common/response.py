@@ -1,16 +1,18 @@
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass
 
 @dataclass
 class GetVoteResponse:
     term: int
     vote_granted: bool
 
-    dict = asdict
-
 @dataclass
 class AppendEntriesResponse:
     node: str
     term: int
     success: bool
+    last_index: int
 
-    dict = asdict
+@dataclass
+class SetResponse:
+    success: bool
+    redirect_to: str | None

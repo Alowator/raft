@@ -6,16 +6,16 @@ from kazoo.client import KazooClient
 from kazoo.protocol.states import WatchedEvent
 
 from common.address import Address
-from conf import Conf
+from common.conf import Conf
 
-class Watcher():
+class ZkClient():
     CONF_PATH = '/cluster'
 
     def __init__(self, zk_host: str):
         self.zk = KazooClient(hosts=zk_host)
         self.zk.start()
 
-        self.conf = Conf()
+        self.conf = Conf.instance()
         self._update_conf()
         self._update_nodes()
 

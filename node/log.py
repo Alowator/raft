@@ -1,4 +1,5 @@
 import logging
+from typing import List
 
 class Entry:
     def __init__(self, index: int, term: int, value: str):
@@ -10,7 +11,7 @@ class Entry:
         return self._index
 
     def get_term(self) -> int:
-        return self._index
+        return self._term
 
     def get_value(self) -> str:
         return self._value
@@ -18,12 +19,18 @@ class Entry:
     def __str__(self):
         return self._value
 
+    def tuple(self):
+        return (self._term, self._value)
+
 class Log:
     def __init__(self, init_term: int):
         self._log = [Entry(0, init_term, "")]
 
     def get_entry(self, index: int) -> Entry:
         return self._log[index]
+
+    def get_entries(self, from_index) -> List[Entry]:
+        return self._log[from_index:]
 
     def get_last_log_index(self) -> int:
         return self._log[-1].get_index()
@@ -39,9 +46,3 @@ class Log:
 
     def truncate_from(self, index: int):
         self._log = self._log[0:index]
-
-    def print(self):
-        res = ["Log contains:"]
-        for entry in self._log:
-            res.append(str(entry))
-        logging.info("\n".join(res))

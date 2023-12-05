@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import List, Tuple
 
 @dataclass
 class GetVoteRequest:
@@ -13,5 +14,5 @@ class AppendEntriesRequest:
     term: int
     prev_log_index: int
     prev_log_term: int
-    entry: str | None
+    entries: List[Tuple[int, str]]
     leader_commit: int
