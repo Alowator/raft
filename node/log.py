@@ -7,6 +7,8 @@ class Entry:
         self._term = term
         self._value = value
 
+        self._res = None
+
     def get_index(self) -> int:
         return self._index
 
@@ -22,6 +24,12 @@ class Entry:
     def tuple(self):
         return (self._term, self._value)
 
+    def set_result(self, res):
+        self._res = res
+
+    def get_result(self):
+        return self._res
+
 class Log:
     def __init__(self, init_term: int):
         self._log = [Entry(0, init_term, "")]
@@ -29,7 +37,10 @@ class Log:
     def get_entry(self, index: int) -> Entry:
         return self._log[index]
 
-    def get_entries(self, from_index) -> List[Entry]:
+    def get_entries(self, frm: int, to: int) -> List[Entry]:
+        return self._log[frm:to + 1]
+
+    def get_entries_from(self, from_index) -> List[Entry]:
         return self._log[from_index:]
 
     def get_last_log_index(self) -> int:

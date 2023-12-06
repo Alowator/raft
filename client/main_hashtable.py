@@ -12,8 +12,16 @@ def main():
     client = Client(conf)
 
     while True:
-        value = input()
-        client.set(value)
+        op = input()
+        if op == 'set':
+            key = input()
+            value = input()
+            client.set(key, value)
+        elif op == 'get':
+            key = input()
+            print(client.get(key))
+        else:
+            print('Unknown operation')
 
 if __name__ == '__main__':
     main()

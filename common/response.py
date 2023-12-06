@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Any
 
 @dataclass
 class GetVoteResponse:
@@ -16,3 +17,4 @@ class AppendEntriesResponse:
 class SetResponse:
     success: bool
     redirect_to: str | None
+    res: Any

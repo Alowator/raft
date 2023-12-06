@@ -1,4 +1,5 @@
 import logging
+import pickle
 from functools import wraps
 
 from common.response import SetResponse
@@ -8,9 +9,9 @@ from common.request import GetVoteRequest, AppendEntriesRequest
 
 def xmlrpc_income(func):
     @wraps(func)
-    def wrapper(self, req):
+    def wrapper(self, *req):
         logging.debug(f"Income {req}")
-        response = func(self, req)
+        response = func(self, *req)
         logging.debug(f"Outcome {response}")
         return response
     return wrapper
@@ -34,5 +35,21 @@ class Controller:
         return self.node.on_append_entries(AppendEntriesRequest(**request))
 
     @xmlrpc_income
-    def set(self, value: str) -> SetResponse:
-        return self.node.on_set(value)
+    def set(self, key, value) -> SetResponse:
+        entry = {
+            'method': 'set',
+            'args': [key, value]
+        }
+        return self.node.on_set(pickle.dumps(entry))
+
+    @xmlrpc_income
+    def get(self, key):
+        return self.node.hashtable.get(key)
+
+    @xmlrpc_income
+    def lock_manage(self, method, args) -> SetResponse:
+        entry = {
+            'method': method,
+            'args': args
+        }
+        return self.node.on_lock(pickle.dumps(entry))

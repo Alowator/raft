@@ -14,6 +14,8 @@ class Server:
         self._server.register_function(self.controller.get_vote, "get_vote")
         self._server.register_function(self.controller.append_entries, "append_entries")
         self._server.register_function(self.controller.set, "set")
+        self._server.register_function(self.controller.get, "get")
+        self._server.register_function(self.controller.lock_manage, "lock_manage")
 
     def serve(self):
         Thread(target=self._server.serve_forever).start()

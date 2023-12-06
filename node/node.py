@@ -1,4 +1,5 @@
 import logging
+import pickle
 import time
 from concurrent.futures import Future
 from threading import Lock
@@ -7,6 +8,8 @@ from typing import List
 from common.address import Address
 from common.conf import Conf
 from log import Log
+from hashtable import Hashtable
+from lock_provider import LockProvider
 from state import State
 from transport.communicator import Communicator
 from common.request import GetVoteRequest, AppendEntriesRequest
@@ -24,6 +27,7 @@ class Node:
         self.votes_count = 0
 
         self.commit_index = 0
+        self.last_applied = 0
 
         self.next_index = {}
         self.match_index = {}
@@ -35,6 +39,9 @@ class Node:
         self.communicator = Communicator()
         self.request_vote_futures: List[Future[GetVoteResponse]] = []
         self.append_entries_futures: List[Future[AppendEntriesResponse]] = []
+
+        self.hashtable = Hashtable()
+        self.lock_provider = LockProvider()
 
         logging.info(f"Node {self.node} successfully initialized")
 
@@ -92,7 +99,7 @@ class Node:
                 for node in self.conf.get_other_nodes():
                     next_node_index = self.next_index.get(str(node))
                     if next_node_index is not None:
-                        entries = self.log.get_entries(next_node_index)
+                        entries = self.log.get_entries_from(next_node_index)
 
                         append_entries_future = self.communicator.append_entries(AppendEntriesRequest(
                             node=str(self.node),
@@ -135,6 +142,7 @@ class Node:
 
                     if votes + 1 > len(self.conf.get_all_nodes()) // 2 and commit_index_candidate > self.commit_index:
                         self.commit_index = commit_index_candidate
+                        self._apply(self.commit_index)
                         logging.info(f"Commit index update: {self.commit_index} (leader decision)")
 
     def _get_time(self):
@@ -174,6 +182,7 @@ class Node:
 
             if self.commit_index < req.leader_commit:
                 self.commit_index = min(req.leader_commit, self.log.get_last_log_index())
+                self._apply(self.commit_index)
                 logging.info(f"Commit index update: {self.commit_index} (received from leader)")
 
             if self.log.contains(req.prev_log_index):
@@ -183,9 +192,10 @@ class Node:
                             logging.warning("Log record with index already exists, maybe leader sent record TWICE")
                             self.log.truncate_from(req.prev_log_index + 1)
                         for entry in req.entries:
-                            self.log.add(entry[1], entry[0])
+                            self.log.add(entry[1].data, entry[0])
                         if self.commit_index < req.leader_commit:
                             self.commit_index = min(req.leader_commit, self.log.get_last_log_index())
+                            self._apply(self.commit_index)
                             logging.info(f"Commit index update: {self.commit_index} (received from leader)")
                     return AppendEntriesResponse(node=str(self.node), term=self.current_term, success=True, last_index=self.log.get_last_log_index())
                 else:
@@ -194,15 +204,40 @@ class Node:
             else:
                 return AppendEntriesResponse(node=str(self.node), term=self.current_term, success=False, last_index=self.log.get_last_log_index())
 
-    def on_set(self, value: str) -> SetResponse:
+    def on_set(self, value) -> SetResponse:
         with self.lock:
             if self.state == State.LEADER:
                 self.log.add(value, self.current_term)
                 entry_index = self.log.get_last_log_index()
                 logging.info(f"Added new entry with index {entry_index}")
             else:
-                return SetResponse(success=False, redirect_to=self.voted_for)
+                return SetResponse(success=False, redirect_to=self.voted_for, res=None)
 
         while self.commit_index < entry_index:
             time.sleep(0.01)
-        return SetResponse(success=True, redirect_to=None)
+        return SetResponse(success=True, redirect_to=None, res=None)
+
+    def on_lock(self, value) -> SetResponse:
+        with self.lock:
+            if self.state == State.LEADER:
+                self.log.add(value, self.current_term)
+                entry_index = self.log.get_last_log_index()
+                logging.info(f"Added new entry with index {entry_index}")
+            else:
+                return SetResponse(success=False, redirect_to=self.voted_for, res=None)
+
+        while self.commit_index < entry_index:
+            time.sleep(0.01)
+
+        return SetResponse(success=True, redirect_to=None, res=self.log.get_entry(entry_index).get_result())
+
+    def _apply(self, commit_index):
+        entries = self.log.get_entries(self.last_applied + 1, commit_index)
+        for entry in entries:
+            op_info = pickle.loads(entry.get_value())
+            if op_info['method'] == 'set':
+                self.hashtable.set(*op_info['args'])
+            else:
+                entry.set_result(getattr(self.lock_provider, op_info['method'])(*op_info['args']))
+
+        self.last_applied = commit_index
